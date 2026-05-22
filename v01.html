@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Peptide Index</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #080808;
+      color: #f5f5f5;
+      font-family: Georgia, serif;
+      min-height: 100vh;
+    }
+
+    .mono { font-family: 'DM Mono', monospace; }
+
+    /* ── HEADER ── */
+    #header {
+      border-bottom: 1px solid #1a1a1a;
+      padding: 32px 24px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8,8,8,0.97);
+      backdrop-filter: blur(10px);
+    }
+    .header-inner { max-width: 900px; margin: 0 auto; }
+    .title-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; flex-wrap: wrap; }
+    h1 {
+      font-size: 28px; font-weight: 800;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: -1px; color: #f5f5f5;
+    }
+    .subtitle { font-size: 12px; color: #444; font-family: 'DM Mono', monospace; }
+    .tagline { font-size: 13px; color: #555; margin-bottom: 20px; margin-top: 4px; }
+
+    #search {
+      width: 100%; padding: 12px 16px;
+      background: #111; border: 1px solid #222;
+      border-radius: 8px; color: #f5f5f5;
+      font-size: 14px; font-family: 'DM Mono', monospace;
+      outline: none; margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+    #search:focus { border-color: #444; }
+    #search::placeholder { color: #444; }
+
+    #filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 6px;
+      border: 1px solid #222; background: transparent;
+      color: #555; font-size: 12px;
+      font-family: 'DM Mono', monospace;
+      cursor: pointer; transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    /* ── MAIN ── */
+    #main { max-width: 900px; margin: 0 auto; padding: 24px; }
+    #cards { display: flex; flex-direction: column; gap: 12px; }
+
+    /* ── CARD ── */
+    .card {
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid #222;
+      background: #111;
+      transition: border-color 0.3s, background 0.3s;
+      cursor: pointer;
+    }
+    .card-header {
+      padding: 20px 24px;
+      display: flex; justify-content: space-between; align-items: flex-start;
+    }
+    .card-header-left { flex: 1; }
+    .card-name-row {
+      display: flex; align-items: center;
+      gap: 10px; margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .card-name {
+      font-size: 20px; font-weight: 700;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: -0.5px; color: #f5f5f5;
+    }
+    .cat-tag {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.5px; padding: 2px 8px;
+      border-radius: 4px; text-transform: uppercase;
+      font-family: 'DM Mono', monospace;
+    }
+    .card-fullname { font-size: 12px; color: #666; font-family: 'DM Mono', monospace; margin-bottom: 8px; }
+    .card-summary { font-size: 14px; color: #aaa; line-height: 1.5; }
+    .chevron {
+      margin-left: 16px; font-size: 20px;
+      flex-shrink: 0; transition: transform 0.3s;
+      user-select: none;
+    }
+    .chevron.open { transform: rotate(180deg); }
+
+    /* ── EXPANDED ── */
+    .card-body {
+      display: none;
+      padding: 0 24px 24px;
+      border-top-width: 1px; border-top-style: solid;
+    }
+    .card-body.open { display: block; }
+
+    .section-label {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 2px; text-transform: uppercase;
+      font-family: 'DM Mono', monospace;
+      margin-top: 20px; margin-bottom: 14px;
+    }
+
+    .dose-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px; margin-bottom: 12px;
+    }
+    .dose-cell {
+      background: #0a0a0a; border: 1px solid #1e1e1e;
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .cell-label {
+      font-size: 10px; color: #555;
+      text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 4px; font-family: 'DM Mono', monospace;
+    }
+    .cell-value { font-size: 14px; color: #e5e5e5; font-family: 'DM Mono', monospace; }
+
+    .routes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .route-tag {
+      font-size: 12px; padding: 4px 10px;
+      border-radius: 20px; font-family: 'DM Mono', monospace;
+    }
+
+    .notes-box {
+      background: #0a0a0a; border-radius: 4px;
+      padding: 12px 14px; border-left-width: 3px; border-left-style: solid;
+      border-top: 1px solid transparent;
+      border-right: 1px solid transparent;
+      border-bottom: 1px solid transparent;
+    }
+    .notes-text { font-size: 13px; color: #bbb; line-height: 1.6; }
+
+    .stacks { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .stack-row {
+      background: #0a0a0a; border: 1px solid #1e1e1e;
+      border-radius: 8px; padding: 12px 14px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .stack-name {
+      font-size: 13px; font-weight: 700;
+      font-family: 'DM Mono', monospace;
+      min-width: 100px; flex-shrink: 0;
+    }
+    .stack-reason { font-size: 13px; color: #999; line-height: 1.5; }
+
+    /* ── EMPTY / FOOTER ── */
+    #empty { display: none; text-align: center; color: #444; padding: 60px 0; font-family: 'DM Mono', monospace; }
+    #footer {
+      margin-top: 48px; padding-top: 24px;
+      border-top: 1px solid #1a1a1a;
+      font-size: 12px; color: #333;
+      text-align: center; line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <div class="header-inner">
+    <div class="title-row">
+      <h1 class="mono">PEPTIDE INDEX</h1>
+      <span class="subtitle mono">v2.0 — 15 compounds</span>
+    </div>
+    <p class="tagline">Dosing protocols &amp; stack combinations. For research and educational purposes only.</p>
+    <input type="text" id="search" placeholder="Search peptides, stacks, mechanisms..." />
+    <div id="filters"></div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="cards"></div>
+  <div id="empty"></div>
+  <div id="footer">⚠️ This reference is for educational and research purposes only. Peptides listed may be unscheduled research compounds or prescription medications depending on jurisdiction. Consult a licensed physician before use. Nothing here constitutes medical advice.</div>
+</div>
+
+<script>
+const CAT_COLORS = {
+  "Healing & Recovery":           { bg: "#0d2d1f", accent: "#22c55e", tag: "#16a34a" },
+  "Growth Hormone Secretagogues": { bg: "#1a1a2e", accent: "#818cf8", tag: "#6366f1" },
+  "Muscle & Performance":         { bg: "#2d1a0e", accent: "#f97316", tag: "#ea580c" },
+  "Cognitive & Neurological":     { bg: "#1a1025", accent: "#c084fc", tag: "#a855f7" },
+  "Weight & Metabolic":           { bg: "#1a1a1a", accent: "#38bdf8", tag: "#0ea5e9" },
+};
+
+const PEPTIDES = [
+  {
+    id:"bpc157", name:"BPC-157", fullName:"Body Protection Compound-157",
+    category:"Healing & Recovery",
+    summary:"A 15-amino-acid peptide derived from a protective protein found in gastric juice. Widely regarded as one of the most versatile healing peptides.",
+    dosing:{
+      range:"200–500 mcg/day", frequency:"Once or twice daily",
+      route:["Subcutaneous injection","Intramuscular injection","Oral (for gut issues)"],
+      cycle:"4–6 weeks on, 2 weeks off",
+      notes:"Injecting near the site of injury is common practice. Oral dosing is effective specifically for GI tract issues."
+    },
+    stacks:[
+      {name:"TB-500",reason:"Synergistic tissue repair — BPC handles local healing, TB-500 provides systemic coverage"},
+      {name:"Ipamorelin + CJC-1295",reason:"Adds GH pulse to accelerate recovery alongside BPC's healing cascade"},
+      {name:"KPV",reason:"Enhanced anti-inflammatory effect, especially for gut inflammation"}
+    ]
+  },
+  {
+    id:"tb500", name:"TB-500", fullName:"Thymosin Beta-4 (synthetic fragment)",
+    category:"Healing & Recovery",
+    summary:"A synthetic version of a naturally occurring peptide that regulates actin, promotes cell migration, and supports widespread tissue regeneration.",
+    dosing:{
+      range:"2–2.5 mg, 2x per week (loading); 2–2.5 mg/week (maintenance)",
+      frequency:"2x/week for 4–6 weeks, then taper",
+      route:["Subcutaneous injection","Intramuscular injection"],
+      cycle:"4–6 week loading phase, then maintenance or break",
+      notes:"Unlike BPC-157, TB-500 works systemically — injection site matters less. Often combined with BPC-157 as the 'gold standard' healing stack."
+    },
+    stacks:[
+      {name:"BPC-157",reason:"The classic 'healing stack' — local + systemic tissue repair"},
+      {name:"GHK-Cu",reason:"Added skin, collagen, and wound healing benefits"},
+      {name:"Ipamorelin",reason:"GH support to amplify regenerative processes"}
+    ]
+  },
+  {
+    id:"ghkcu", name:"GHK-Cu", fullName:"Glycyl-L-Histidyl-L-Lysine Copper",
+    category:"Healing & Recovery",
+    summary:"A naturally occurring copper peptide complex with potent regenerative, anti-inflammatory, and anti-aging properties. Activates over 4,000 genes.",
+    dosing:{
+      range:"1–2 mg/day (injectable); topical concentration varies (1–5%)",
+      frequency:"Daily",
+      route:["Subcutaneous injection","Topical application"],
+      cycle:"Can be used continuously; cycles of 8–12 weeks are common",
+      notes:"Topical use is well-established for skin and scalp. Injectable use is more experimental but may offer systemic anti-aging and wound-healing benefits."
+    },
+    stacks:[
+      {name:"TB-500 + BPC-157",reason:"Comprehensive tissue and skin healing protocol"},
+      {name:"Epithalon",reason:"Anti-aging synergy — telomere and cellular repair"},
+      {name:"Retinoic acid (topical)",reason:"Enhanced skin remodeling when used topically"}
+    ]
+  },
+  {
+    id:"cjc1295", name:"CJC-1295", fullName:"CJC-1295 (with or without DAC)",
+    category:"Growth Hormone Secretagogues",
+    summary:"A long-acting GHRH analog that stimulates the pituitary to release growth hormone. Available with DAC (longer half-life) or without (mod GRF 1-29).",
+    dosing:{
+      range:"100–300 mcg per dose",
+      frequency:"2–3x per week (with DAC); daily or 2x/day (without DAC / mod GRF)",
+      route:["Subcutaneous injection"],
+      cycle:"8–12 weeks on, 4 weeks off",
+      notes:"Without DAC (Mod GRF 1-29) is preferred by many for a more natural pulsatile GH release. Always pair with a GHRP like Ipamorelin for synergy. Inject at night for best effect."
+    },
+    stacks:[
+      {name:"Ipamorelin",reason:"The most popular combo — GHRH + GHRP for amplified GH pulse with minimal side effects"},
+      {name:"BPC-157 + TB-500",reason:"Recovery and healing stack with GH support"},
+      {name:"IGF-1 LR3",reason:"Downstream GH signaling enhancement for muscle growth"}
+    ]
+  },
+  {
+    id:"ipamorelin", name:"Ipamorelin", fullName:"Ipamorelin",
+    category:"Growth Hormone Secretagogues",
+    summary:"A selective GH secretagogue and ghrelin mimetic. Considered one of the cleanest GHRPs — minimal cortisol, prolactin, or hunger side effects.",
+    dosing:{
+      range:"100–300 mcg per dose",
+      frequency:"1–3x daily (morning, post-workout, before bed)",
+      route:["Subcutaneous injection"],
+      cycle:"8–12 weeks on, 4 weeks off",
+      notes:"Pre-bed dosing takes advantage of the natural GH pulse during sleep. Fasted state improves efficacy. One of the safest GHRPs for long-term use."
+    },
+    stacks:[
+      {name:"CJC-1295 (no DAC)",reason:"Gold standard GH stack — synergistically amplifies GH release 3–10x vs either alone"},
+      {name:"Sermorelin",reason:"Alternative GHRH pairing for a slightly more natural GH release profile"},
+      {name:"IGF-1 LR3",reason:"Amplifies downstream anabolic signaling"}
+    ]
+  },
+  {
+    id:"sermorelin", name:"Sermorelin", fullName:"Sermorelin Acetate",
+    category:"Growth Hormone Secretagogues",
+    summary:"A synthetic version of the first 29 amino acids of GHRH. Stimulates the pituitary to produce and secrete GH naturally. Often used as a safer alternative to exogenous HGH.",
+    dosing:{
+      range:"200–500 mcg/day",
+      frequency:"Once daily, typically before bed",
+      route:["Subcutaneous injection"],
+      cycle:"3–6 months; some use continuously under supervision",
+      notes:"Longer cycles are more common than other peptides due to its safety profile. Benefits are gradual — noticeable improvements typically emerge after 3–6 months."
+    },
+    stacks:[
+      {name:"Ipamorelin",reason:"GHRH + GHRP pairing for amplified GH release"},
+      {name:"Tesamorelin",reason:"Combined for more potent GH stimulation, especially for body composition"},
+      {name:"BPC-157",reason:"Recovery enhancement alongside GH optimization"}
+    ]
+  },
+  {
+    id:"tesamorelin", name:"Tesamorelin", fullName:"Tesamorelin",
+    category:"Growth Hormone Secretagogues",
+    summary:"An FDA-approved GHRH analog (Egrifta) specifically studied for visceral adipose tissue reduction. More potent than Sermorelin with a stabilized structure.",
+    dosing:{
+      range:"1–2 mg/day",
+      frequency:"Once daily",
+      route:["Subcutaneous injection (abdomen)"],
+      cycle:"6 months (FDA protocol); many use 3-month cycles",
+      notes:"FDA-approved for HIV-related lipodystrophy. Strong evidence for visceral fat reduction. Abdominal injection site is preferred per clinical protocol."
+    },
+    stacks:[
+      {name:"Ipamorelin",reason:"Enhanced GH pulse for improved body composition"},
+      {name:"AOD-9604",reason:"Dual fat metabolism approach — GH axis + direct lipolysis"},
+      {name:"BPC-157",reason:"Gut and metabolic health support"}
+    ]
+  },
+  {
+    id:"igf1lr3", name:"IGF-1 LR3", fullName:"Insulin-like Growth Factor-1 Long R3",
+    category:"Muscle & Performance",
+    summary:"A modified form of IGF-1 with a longer half-life (~20–30 hours vs ~12 min). Promotes muscle hyperplasia (new muscle cell formation), not just hypertrophy.",
+    dosing:{
+      range:"20–50 mcg/day",
+      frequency:"Once daily, post-workout",
+      route:["Subcutaneous injection","Intramuscular injection"],
+      cycle:"4 weeks on, 4 weeks off (receptor desensitization risk with longer use)",
+      notes:"Short cycles are critical to prevent receptor downregulation. Post-workout intramuscular injection near trained muscles is a common approach for localized effect. Hypoglycemia risk — keep fast-acting carbs on hand."
+    },
+    stacks:[
+      {name:"CJC-1295 + Ipamorelin",reason:"GH stimulates IGF-1 production; IGF-1 LR3 adds direct downstream signaling"},
+      {name:"BPC-157",reason:"Recovery support during intensive training cycles"},
+      {name:"MGF",reason:"MGF for immediate post-workout local repair, IGF-1 LR3 for systemic anabolic effect"}
+    ]
+  },
+  {
+    id:"mgf", name:"MGF", fullName:"Mechano Growth Factor",
+    category:"Muscle & Performance",
+    summary:"A splice variant of IGF-1 produced locally in muscle tissue in response to mechanical stress. Activates satellite cells for muscle repair and new fiber growth.",
+    dosing:{
+      range:"100–200 mcg per muscle group",
+      frequency:"Immediately post-workout (within 1–2 hours), 2–3x per week",
+      route:["Intramuscular injection (into trained muscle)"],
+      cycle:"4–6 weeks",
+      notes:"Timing is critical — MGF has a very short active window post-exercise. PEGylated MGF (PEG-MGF) offers a longer half-life alternative. Local injection into the worked muscle is important for site-specific effect."
+    },
+    stacks:[
+      {name:"IGF-1 LR3",reason:"MGF activates satellite cells locally; IGF-1 LR3 promotes systemic differentiation — complementary mechanisms"},
+      {name:"BPC-157 + TB-500",reason:"Repair and recovery support alongside muscle growth signaling"},
+      {name:"CJC-1295 + Ipamorelin",reason:"GH axis support for anabolic environment"}
+    ]
+  },
+  {
+    id:"ghrp2", name:"GHRP-2", fullName:"Growth Hormone Releasing Peptide-2",
+    category:"Muscle & Performance",
+    summary:"A potent synthetic hexapeptide that stimulates GH release through the ghrelin receptor. Stronger GH release than GHRP-6, with moderate appetite stimulation.",
+    dosing:{
+      range:"100–300 mcg per dose",
+      frequency:"2–3x daily (morning, post-workout, before bed)",
+      route:["Subcutaneous injection"],
+      cycle:"8–12 weeks on, 4 weeks off",
+      notes:"More potent than Ipamorelin but with more cortisol and prolactin elevation. Best used in fasted state. Consider Ipamorelin if side effect sensitivity is a concern."
+    },
+    stacks:[
+      {name:"CJC-1295 (no DAC)",reason:"Classic GHRH + GHRP stack for maximum GH output"},
+      {name:"IGF-1 LR3",reason:"Downstream anabolic amplification"},
+      {name:"BPC-157",reason:"Recovery support to match increased training intensity"}
+    ]
+  },
+  {
+    id:"selank", name:"Selank", fullName:"Selank (TP-7)",
+    category:"Cognitive & Neurological",
+    summary:"A synthetic heptapeptide analog of tuftsin developed in Russia. Acts as an anxiolytic and nootropic without sedation or dependence risk.",
+    dosing:{
+      range:"250–500 mcg per dose",
+      frequency:"1–3x daily",
+      route:["Intranasal (most common)","Subcutaneous injection"],
+      cycle:"2–4 weeks on, 1–2 weeks off",
+      notes:"Intranasal delivery is highly effective for CNS targets. One of the safest peptides — no known addiction potential. Effects are often felt acutely within 20–30 minutes."
+    },
+    stacks:[
+      {name:"Semax",reason:"Selank for anxiety reduction + Semax for cognitive enhancement — popular nootropic stack"},
+      {name:"BPC-157",reason:"Gut-brain axis support and systemic anti-inflammatory synergy"},
+      {name:"Dihexa",reason:"Deeper cognitive enhancement for memory and neuroplasticity alongside Selank's anxiolytic effect"}
+    ]
+  },
+  {
+    id:"semax", name:"Semax", fullName:"Semax (ACTH 4-7 Pro8-Gly9-Pro10)",
+    category:"Cognitive & Neurological",
+    summary:"A synthetic peptide derived from ACTH, developed by the Russian Institute of Molecular Genetics. Upregulates BDNF and NGF, with neuroprotective and cognitive-enhancing effects.",
+    dosing:{
+      range:"300–600 mcg per dose",
+      frequency:"1–2x daily",
+      route:["Intranasal (primary)","Subcutaneous injection"],
+      cycle:"2–4 weeks on, 1–2 weeks off",
+      notes:"Intranasal route bypasses the blood-brain barrier effectively. Higher doses (1000 mcg) are used in clinical settings for stroke recovery. BDNF elevation may persist after the cycle ends."
+    },
+    stacks:[
+      {name:"Selank",reason:"Anxiety reduction + cognitive boost — well-characterized nootropic pairing"},
+      {name:"Epithalon",reason:"Neuroprotection + anti-aging synergy"},
+      {name:"CJC-1295 + Ipamorelin",reason:"GH-driven neurological recovery and cognitive support"}
+    ]
+  },
+  {
+    id:"epithalon", name:"Epithalon", fullName:"Epithalamin / Epitalon",
+    category:"Cognitive & Neurological",
+    summary:"A tetrapeptide (Ala-Glu-Asp-Gly) derived from the epithalamus. Activates telomerase, extends telomeres, regulates melatonin production, and is one of the most studied anti-aging peptides.",
+    dosing:{
+      range:"5–10 mg/day",
+      frequency:"Once daily",
+      route:["Subcutaneous injection","Intravenous (clinical)"],
+      cycle:"10–20 days, 1–2x per year",
+      notes:"Unlike most peptides, Epithalon is used in short, infrequent courses. Effects on telomere length and circadian rhythm regulation may be long-lasting. Pre-bed dosing aligns with its melatonin-regulatory role."
+    },
+    stacks:[
+      {name:"GHK-Cu",reason:"Comprehensive anti-aging protocol — cellular + telomere + skin regeneration"},
+      {name:"Semax",reason:"Neuroprotection + anti-aging brain health"},
+      {name:"BPC-157",reason:"Whole-body restoration stack"}
+    ]
+  },
+  {
+    id:"aod9604", name:"AOD-9604", fullName:"Anti-Obesity Drug 9604",
+    category:"Weight & Metabolic",
+    summary:"A modified fragment of HGH (hGH frag 176-191) that mimics the fat-burning effects of GH without affecting IGF-1 or blood sugar — making it safer for metabolic use.",
+    dosing:{
+      range:"300–500 mcg/day",
+      frequency:"Once daily, fasted (morning or pre-workout)",
+      route:["Subcutaneous injection"],
+      cycle:"8–12 weeks",
+      notes:"Fasted administration significantly improves lipolytic effect. Does not affect insulin sensitivity — a key advantage over full HGH. Combine with a caloric deficit for best results."
+    },
+    stacks:[
+      {name:"Tesamorelin",reason:"Dual approach: AOD for direct lipolysis + Tesamorelin for visceral fat via GH axis"},
+      {name:"CJC-1295 + Ipamorelin",reason:"GH secretagogues to complement fat metabolism with muscle preservation"},
+      {name:"BPC-157",reason:"Metabolic and gut health support during fat loss phases"}
+    ]
+  },
+  {
+    id:"semaglutide", name:"Semaglutide", fullName:"Semaglutide (GLP-1 agonist)",
+    category:"Weight & Metabolic",
+    summary:"An FDA-approved GLP-1 receptor agonist (Wegovy/Ozempic). Reduces appetite, slows gastric emptying, and improves insulin sensitivity. Among the most effective weight-loss interventions studied.",
+    dosing:{
+      range:"0.25–2.4 mg/week (titrated up over months)",
+      frequency:"Once weekly",
+      route:["Subcutaneous injection"],
+      cycle:"Ongoing under medical supervision; typically 68+ weeks in clinical trials",
+      notes:"Dose is titrated slowly to minimize GI side effects (nausea, vomiting). Must be used under physician supervision. Start at 0.25 mg/week and increase every 4 weeks. Discontinuation often leads to weight regain."
+    },
+    stacks:[
+      {name:"AOD-9604",reason:"Added direct lipolysis alongside GLP-1 mediated appetite suppression"},
+      {name:"BPC-157",reason:"GI side effect mitigation — BPC-157 supports gut lining integrity"},
+      {name:"CJC-1295 + Ipamorelin",reason:"Muscle preservation during significant weight loss"}
+    ]
+  }
+];
+
+const CATEGORIES = ["All","Healing & Recovery","Growth Hormone Secretagogues","Muscle & Performance","Cognitive & Neurological","Weight & Metabolic"];
+
+let activeCategory = "All";
+let searchQuery = "";
+let expandedId = null;
+
+function hex(color, opacity) {
+  const r = parseInt(color.slice(1,3),16);
+  const g = parseInt(color.slice(3,5),16);
+  const b = parseInt(color.slice(5,7),16);
+  return `rgba(${r},${g},${b},${opacity})`;
+}
+
+function buildFilters() {
+  const container = document.getElementById("filters");
+  const counts = {All: PEPTIDES.length};
+  PEPTIDES.forEach(p => { counts[p.category] = (counts[p.category]||0)+1; });
+
+  container.innerHTML = "";
+  CATEGORIES.forEach(cat => {
+    const c = cat !== "All" ? CAT_COLORS[cat] : null;
+    const btn = document.createElement("button");
+    btn.className = "filter-btn mono";
+    btn.textContent = `${cat} (${counts[cat]||0})`;
+    btn.dataset.cat = cat;
+    applyFilterStyle(btn, cat === activeCategory, c);
+    btn.addEventListener("click", () => {
+      activeCategory = cat;
+      document.querySelectorAll(".filter-btn").forEach(b => {
+        const bc = b.dataset.cat !== "All" ? CAT_COLORS[b.dataset.cat] : null;
+        applyFilterStyle(b, b.dataset.cat === activeCategory, bc);
+      });
+      render();
+    });
+    container.appendChild(btn);
+  });
+}
+
+function applyFilterStyle(btn, isActive, c) {
+  btn.style.border = `1px solid ${isActive ? (c?.accent||"#f5f5f5") : "#222"}`;
+  btn.style.background = isActive ? hex(c?.accent||"#f5f5f5", 0.13) : "transparent";
+  btn.style.color = isActive ? (c?.accent||"#f5f5f5") : "#555";
+}
+
+function renderCard(p) {
+  const c = CAT_COLORS[p.category];
+  const isOpen = expandedId === p.id;
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.dataset.id = p.id;
+  card.style.background = isOpen ? c.bg : "#111";
+  card.style.borderColor = isOpen ? c.accent : "#222";
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="card-name-row">
+          <span class="card-name mono">${p.name}</span>
+          <span class="cat-tag mono" style="background:${hex(c.tag,0.2)};color:${c.accent};border:1px solid ${hex(c.tag,0.4)}">${p.category}</span>
+        </div>
+        <div class="card-fullname mono">${p.fullName}</div>
+        <div class="card-summary">${p.summary}</div>
+      </div>
+      <div class="chevron${isOpen?" open":""}">▾</div>
+    </div>
+    <div class="card-body${isOpen?" open":""}" style="border-top-color:${hex(c.accent,0.2)}">
+      <div class="section-label mono" style="color:${c.accent}">— Dosing Protocol</div>
+      <div class="dose-grid">
+        ${[["Dose Range",p.dosing.range],["Frequency",p.dosing.frequency],["Cycle Length",p.dosing.cycle]].map(([l,v])=>`
+          <div class="dose-cell">
+            <div class="cell-label mono">${l}</div>
+            <div class="cell-value mono">${v}</div>
+          </div>`).join("")}
+      </div>
+      <div class="cell-label mono" style="margin-bottom:8px">Administration Routes</div>
+      <div class="routes">
+        ${p.dosing.route.map(r=>`<span class="route-tag mono" style="color:${c.accent};background:${hex(c.accent,0.08)};border:1px solid ${hex(c.accent,0.2)}">${r}</span>`).join("")}
+      </div>
+      <div class="notes-box" style="border-left-color:${c.accent};border-top-color:${hex(c.accent,0.13)};border-right-color:${hex(c.accent,0.13)};border-bottom-color:${hex(c.accent,0.13)}">
+        <div class="cell-label mono">Clinical Notes</div>
+        <div class="notes-text">${p.dosing.notes}</div>
+      </div>
+      <div class="section-label mono" style="color:${c.accent};margin-top:24px">— Common Stacks</div>
+      <div class="stacks">
+        ${p.stacks.map(s=>`
+          <div class="stack-row">
+            <div class="stack-name mono" style="color:${c.accent}">+ ${s.name}</div>
+            <div class="stack-reason">${s.reason}</div>
+          </div>`).join("")}
+      </div>
+    </div>
+  `;
+
+  card.addEventListener("click", () => {
+    expandedId = expandedId === p.id ? null : p.id;
+    render();
+  });
+
+  return card;
+}
+
+function render() {
+  const q = searchQuery.toLowerCase();
+  const filtered = PEPTIDES.filter(p => {
+    const matchCat = activeCategory === "All" || p.category === activeCategory;
+    const matchQ = !q ||
+      p.name.toLowerCase().includes(q) ||
+      p.fullName.toLowerCase().includes(q) ||
+      p.summary.toLowerCase().includes(q) ||
+      p.stacks.some(s => s.name.toLowerCase().includes(q));
+    return matchCat && matchQ;
+  });
+
+  const container = document.getElementById("cards");
+  const empty = document.getElementById("empty");
+  container.innerHTML = "";
+
+  if (filtered.length === 0) {
+    empty.style.display = "block";
+    empty.textContent = `No peptides match "${searchQuery}"`;
+  } else {
+    empty.style.display = "none";
+    filtered.forEach(p => container.appendChild(renderCard(p)));
+  }
+}
+
+document.getElementById("search").addEventListener("input", e => {
+  searchQuery = e.target.value;
+  render();
+});
+
+buildFilters();
+render();
+</script>
+</body>
+</html>
